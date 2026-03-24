@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dimensionamiento de Equipo de Bombeo</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --accent3: #ff6b35;
+    --text: #e2eaf7;
+    --text-dim: #6b7fa3;
+    --input-bg: #0d1420;
+    --result-bg: #0a1628;
+    --glow: 0 0 20px rgba(0,212,255,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content:'';
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .wrapper {
+    position:relative; z-index:1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 3rem 0 2.5rem;
+    position: relative;
+  }
+  header::after {
+    content:'';
+    display:block;
+    width:200px; height:1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 1.5rem auto 0;
+  }
+  .badge {
+    display:inline-block;
+    font-family:'Rajdhani', sans-serif;
+    font-size:0.7rem; font-weight:600;
+    letter-spacing:0.25em; text-transform:uppercase;
+    color:var(--accent);
+    border:1px solid var(--border);
+    padding:0.25rem 1rem; border-radius:2px;
+    margin-bottom:1rem;
+  }
+  h1 {
+    font-family:'Rajdhani', sans-serif;
+    font-size:clamp(1.8rem, 4vw, 2.8rem);
+    font-weight:700;
+    color:#fff;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    line-height:1.1;
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    color:var(--text-dim);
+    font-size:0.8rem;
+    margin-top:0.75rem;
+    letter-spacing:0.1em;
+  }
+
+  /* SECTION */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius:4px;
+    margin-bottom:1.5rem;
+    overflow:hidden;
+    box-shadow: var(--glow);
+  }
+  .section-header {
+    display:flex; align-items:center; gap:0.75rem;
+    padding:0.85rem 1.25rem;
+    background: var(--surface2);
+    border-bottom:1px solid var(--border);
+  }
+  .section-num {
+    width:24px; height:24px;
+    background:var(--accent);
+    color:#000;
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700; font-size:0.85rem;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:2px;
+    flex-shrink:0;
+  }
+  .section-title {
+    font-family:'Rajdhani', sans-serif;
+    font-weight:600; font-size:1rem;
+    letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--accent);
+  }
+  .section-body { padding:1.25rem; }
+
+  /* GRID */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+  @media(max-width:680px){
+    .grid-2, .grid-3 { grid-template-columns:1fr; }
+  }
+
+  /* FIELD */
+  .field { display:flex; flex-direction:column; gap:0.35rem; }
+  .field label {
+    font-size:0.7rem;
+    letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  .input-wrap {
+    display:flex; align-items:center;
+    background:var(--input-bg);
+    border:1px solid var(--border);
+    border-radius:3px;
+    overflow:hidden;
+    transition:border-color 0.2s;
+  }
+  .input-wrap:focus-within {
+    border-color:var(--accent);
+    box-shadow:0 0 0 2px rgba(0,212,255,0.1);
+  }
+  .input-wrap input, .input-wrap select {
+    flex:1; padding:0.6rem 0.75rem;
+    background:transparent; border:none; outline:none;
+    color:var(--text);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.9rem;
+  }
+  .input-wrap select option { background:#111; }
+  .unit-tag {
+    padding:0 0.75rem;
+    font-size:0.7rem; letter-spacing:0.1em;
+    color:var(--accent);
+    border-left:1px solid var(--border);
+    white-space:nowrap;
+  }
+
+  /* SELECTOR DE MATERIAL con "n" */
+  .material-info {
+    font-size:0.7rem; color:var(--accent2);
+    margin-top:0.2rem; letter-spacing:0.08em;
+  }
+
+  /* BOTÓN */
+  .btn-calc {
+    display:block; width:100%;
+    margin-top:1.5rem;
+    padding:1rem;
+    background: linear-gradient(135deg, #006a8a 0%, #004d66 100%);
+    border:1px solid var(--accent);
+    border-radius:3px;
+    color:#fff;
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700; font-size:1.15rem;
+    letter-spacing:0.2em; text-transform:uppercase;
+    cursor:pointer;
+    transition:all 0.25s;
+    position:relative; overflow:hidden;
+  }
+  .btn-calc::before {
+    content:''; position:absolute;
+    top:0; left:-100%; width:100%; height:100%;
+    background:linear-gradient(90deg, transparent, rgba(0,212,255,0.15), transparent);
+    transition:left 0.4s;
+  }
+  .btn-calc:hover::before { left:100%; }
+  .btn-calc:hover {
+    background:linear-gradient(135deg, #0090bb 0%, #006a8a 100%);
+    box-shadow:0 0 25px rgba(0,212,255,0.3);
+    transform:translateY(-1px);
+  }
+  .btn-calc:active { transform:translateY(0); }
+
+  /* RESULTADOS */
+  #results { display:none; }
+  #results.visible { display:block; animation: fadeUp 0.5s ease; }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .results-title {
+    font-family:'Rajdhani', sans-serif;
+    font-size:1.4rem; font-weight:700;
+    letter-spacing:0.15em; text-transform:uppercase;
+    color:#fff; margin-bottom:1.5rem;
+    display:flex; align-items:center; gap:0.75rem;
+  }
+  .results-title::before {
+    content:''; display:block;
+    width:4px; height:1.4rem;
+    background:var(--accent2);
+  }
+
+  /* RESULT CARDS */
+  .result-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:1rem;
+    margin-bottom:1.5rem;
+  }
+  .rcard {
+    background:var(--result-bg);
+    border:1px solid var(--border);
+    border-radius:3px;
+    padding:1rem 1.1rem;
+    position:relative;
+    transition:border-color 0.2s;
+  }
+  .rcard:hover { border-color:var(--accent); }
+  .rcard-label {
+    font-size:0.65rem; letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--text-dim); margin-bottom:0.5rem;
+  }
+  .rcard-val {
+    font-family:'Rajdhani', sans-serif;
+    font-size:2rem; font-weight:700;
+    line-height:1;
+  }
+  .rcard-unit {
+    font-size:0.75rem; color:var(--text-dim);
+    margin-top:0.25rem;
+  }
+  .rcard.accent-blue .rcard-val { color:var(--accent); }
+  .rcard.accent-green .rcard-val { color:var(--accent2); }
+  .rcard.accent-orange .rcard-val { color:var(--accent3); }
+
+  /* TABLE results */
+  .rtable-wrap { overflow-x:auto; }
+  table {
+    width:100%; border-collapse:collapse;
+    font-size:0.8rem;
+  }
+  thead tr { background:var(--surface2); }
+  thead th {
+    padding:0.6rem 0.9rem; text-align:left;
+    font-family:'Rajdhani', sans-serif;
+    font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--accent);
+    border-bottom:1px solid var(--border);
+  }
+  tbody tr { border-bottom:1px solid rgba(30,58,95,0.5); transition:background 0.15s; }
+  tbody tr:hover { background:rgba(0,212,255,0.04); }
+  td { padding:0.6rem 0.9rem; color:var(--text-dim); }
+  td:last-child { color:var(--text); font-weight:500; }
+
+  /* RECOMMENDED BOX */
+  .rec-box {
+    background:linear-gradient(135deg, rgba(0,255,136,0.08), rgba(0,212,255,0.05));
+    border:1px solid var(--accent2);
+    border-radius:4px;
+    padding:1.25rem 1.5rem;
+    display:flex; align-items:center; gap:1.25rem;
+    flex-wrap:wrap;
+  }
+  .rec-icon { font-size:2.5rem; }
+  .rec-content h3 {
+    font-family:'Rajdhani', sans-serif;
+    font-size:1.1rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--accent2); margin-bottom:0.25rem;
+  }
+  .rec-content p { font-size:0.8rem; color:var(--text-dim); }
+  .rec-content p strong { color:var(--text); }
+
+  /* NOTA */
+  .note {
+    font-size:0.72rem; color:var(--text-dim);
+    border-left:2px solid var(--border);
+    padding-left:0.75rem; margin-top:1rem;
+    line-height:1.6;
+  }
+
+  /* SEPARATOR */
+  .sep {
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--border), transparent);
+    margin:1.5rem 0;
+  }
+
+  /* EQUIPO CONFIG */
+  .equipo-tabs {
+    display:flex; gap:0.5rem; margin-bottom:1rem;
+  }
+  .tab-btn {
+    flex:1; padding:0.55rem;
+    background:var(--input-bg); border:1px solid var(--border);
+    border-radius:3px; color:var(--text-dim);
+    font-family:'IBM Plex Mono', monospace; font-size:0.8rem;
+    cursor:pointer; transition:all 0.2s; text-align:center;
+  }
+  .tab-btn.active {
+    background:rgba(0,212,255,0.1); border-color:var(--accent);
+    color:var(--accent);
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="badge">Ingeniería Hidráulica</div>
+    <h1>Dimensionamiento de<br><span>Equipo de Bombeo</span></h1>
+    <p class="subtitle">// Cálculo de potencia · carga total · pérdidas por fricción (Manning)</p>
+  </header>
+
+  <!-- SECCIÓN 1: CAUDAL Y TUBERÍA -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div class="section-title">Caudal y Tubería</div>
+    </div>
+    <div class="section-body">
+      <div class="grid-3">
+        <div class="field">
+          <label>Caudal a Bombear (Q)</label>
+          <div class="input-wrap">
+            <input type="number" id="caudal" value="1" min="0.01" step="0.01">
+            <span class="unit-tag">l/s</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Número de Equipos</label>
+          <div class="input-wrap" style="padding:0 0.25rem">
+            <div class="equipo-tabs" style="margin:0; flex:1; gap:0.25rem; padding:0.25rem 0.5rem">
+              <div class="tab-btn active" onclick="selectEquipos(1,this)">1 Equipo</div>
+              <div class="tab-btn" onclick="selectEquipos(2,this)">2 Equipos</div>
+            </div>
+          </div>
+          <input type="hidden" id="numEquipos" value="1">
+        </div>
+        <div class="field">
+          <label>Material de Tubería</label>
+          <div class="input-wrap">
+            <select id="material" onchange="updateN()">
+              <option value="0.009">PVC (n=0.009)</option>
+              <option value="0.01">Asbesto-Cemento (n=0.010)</option>
+              <option value="0.012">Concreto (n=0.012)</option>
+              <option value="0.014">Acero Galvanizado (n=0.014)</option>
+              <option value="0.015" selected>Fierro Galvanizado (n=0.015)</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+          <div class="material-info" id="matInfo">n = 0.015 (Manning)</div>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:1rem" id="customNRow" style="display:none">
+        <div></div><div></div>
+        <div class="field">
+          <label>Coef. Manning (n) personalizado</label>
+          <div class="input-wrap">
+            <input type="number" id="customN" value="0.015" min="0.001" max="0.1" step="0.001">
+          </div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label>Diámetro de Tubería</label>
+          <div class="input-wrap">
+            <input type="number" id="diametro" value="3" min="0.5" step="0.5">
+            <span class="unit-tag">pulg</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tipo de Bomba</label>
+          <div class="input-wrap">
+            <select id="tipoBomba">
+              <option value="Sumergible">Sumergible</option>
+              <option value="Superficie">Superficie</option>
+              <option value="Turbina Vertical">Turbina Vertical</option>
+              <option value="Centrífuga">Centrífuga</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Eficiencia de la Bomba (η)</label>
+          <div class="input-wrap">
+            <input type="number" id="eficiencia" value="50" min="10" max="95" step="1">
+            <span class="unit-tag">%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 2: LÍNEA DE CONDUCCIÓN -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div class="section-title">Línea de Conducción</div>
+    </div>
+    <div class="section-body">
+      <div class="grid-3">
+        <div class="field">
+          <label>Cota Inicio</label>
+          <div class="input-wrap">
+            <input type="number" id="cotaInicio" value="0" step="0.1">
+            <span class="unit-tag">msnm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Cota Fin</label>
+          <div class="input-wrap">
+            <input type="number" id="cotaFin" value="17" step="0.1">
+            <span class="unit-tag">msnm</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Altura de Estructura</label>
+          <div class="input-wrap">
+            <input type="number" id="alturaEst" value="0" step="0.1">
+            <span class="unit-tag">m</span>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:1rem">
+        <div class="field">
+          <label>Longitud / Distancia</label>
+          <div class="input-wrap">
+            <input type="number" id="longitud" value="1400" min="1" step="1">
+            <span class="unit-tag">m</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>% Pérdidas Menores (sobre Hf)</label>
+          <div class="input-wrap">
+            <input type="number" id="pctMenores" value="5" min="0" max="50" step="1">
+            <span class="unit-tag">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:1rem">
+        <div class="field">
+          <label>% Otras Pérdidas (sobre suma)</label>
+          <div class="input-wrap">
+            <input type="number" id="pctOtras" value="6" min="0" max="30" step="1">
+            <span class="unit-tag">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Peso Específico del Fluido (γ)</label>
+          <div class="input-wrap">
+            <input type="number" id="pe" value="1000" min="800" step="1">
+            <span class="unit-tag">kg/m³</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-calc" onclick="calcular()">▶ Calcular Equipo de Bombeo</button>
+
+  <!-- RESULTADOS -->
+  <div id="results">
+    <div class="sep"></div>
+    <div class="results-title">Resultados del Cálculo</div>
+
+    <!-- Cards principales -->
+    <div class="result-grid">
+      <div class="rcard accent-blue">
+        <div class="rcard-label">Diámetro Calculado</div>
+        <div class="rcard-val" id="r_diam_calc">–</div>
+        <div class="rcard-unit">pulgadas (teórico)</div>
+      </div>
+      <div class="rcard accent-blue">
+        <div class="rcard-label">Pérdidas por Fricción</div>
+        <div class="rcard-val" id="r_hf">–</div>
+        <div class="rcard-unit">metros</div>
+      </div>
+      <div class="rcard accent-blue">
+        <div class="rcard-label">Carga Total</div>
+        <div class="rcard-val" id="r_carga">–</div>
+        <div class="rcard-unit">metros</div>
+      </div>
+      <div class="rcard accent-orange">
+        <div class="rcard-label">Potencia Calculada</div>
+        <div class="rcard-val" id="r_pot">–</div>
+        <div class="rcard-unit">HP</div>
+      </div>
+      <div class="rcard accent-green">
+        <div class="rcard-label">Potencia Comercial</div>
+        <div class="rcard-val" id="r_pot_com">–</div>
+        <div class="rcard-unit">HP</div>
+      </div>
+      <div class="rcard accent-green">
+        <div class="rcard-label">Presión</div>
+        <div class="rcard-val" id="r_presion">–</div>
+        <div class="rcard-unit">Bar</div>
+      </div>
+    </div>
+
+    <!-- Tabla detalle -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">◈</div>
+        <div class="section-title">Desglose de Cálculo</div>
+      </div>
+      <div class="section-body">
+        <div class="rtable-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Parámetro</th>
+                <th>Valor</th>
+                <th>Unidad</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody id="tabla_detalle"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recomendación -->
+    <div class="rec-box" id="rec_box">
+      <div class="rec-icon">⚡</div>
+      <div class="rec-content">
+        <h3 id="rec_title">Equipo Recomendado</h3>
+        <p id="rec_desc"></p>
+      </div>
+    </div>
+
+    <div class="note">
+      * Fórmula de Manning para pérdidas por fricción: Hf = (10.29 · n² · L · Q²) / D^(16/3)<br>
+      * Pérdidas menores estimadas como porcentaje sobre Hf · Otras pérdidas como porcentaje sobre la suma (Desnivel + Fricciones)<br>
+      * Potencia: P [HP] = (γ · Q · H) / (75 · η) · Factor de conversión<br>
+      * La potencia comercial se selecciona al valor normalizado inmediatamente superior.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const COMERCIALES = [0.5, 0.75, 1, 1.5, 2, 3, 5, 7.5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100];
+
+  function selectEquipos(n, el) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('numEquipos').value = n;
+  }
+
+  function updateN() {
+    const sel = document.getElementById('material');
+    const customRow = document.getElementById('customNRow');
+    const info = document.getElementById('matInfo');
+    if(sel.value === 'custom') {
+      customRow.style.display = 'grid';
+      info.textContent = 'Ingresa valor de n personalizado';
+    } else {
+      customRow.style.display = 'none';
+      info.textContent = `n = ${sel.value} (Manning)`;
+    }
+  }
+
+  function getN() {
+    const sel = document.getElementById('material');
+    if(sel.value === 'custom') return parseFloat(document.getElementById('customN').value) || 0.015;
+    return parseFloat(sel.value);
+  }
+
+  function pulgadasAMetros(p) { return p * 0.0254; }
+
+  function calcDiametroTeorico(Q_m3s, n, L, S_approx) {
+    // Manning para tubería llena: Q = (1/n) * A * R^(2/3) * S^(1/2)
+    // Iterativo o usando fórmula directa de Hazen-Williams adaptada
+    // Usando fórmula Manning para tubería circular: D = (10.29 * n^2 * Q^2 * L / Hf)^(3/16)
+    // Se asume Hf = 1% de L como estimación inicial
+    const HfEst = L * 0.005;
+    const D = Math.pow((10.29 * n * n * L * Q_m3s * Q_m3s) / HfEst, 3/16);
+    return D / 0.0254; // metros a pulgadas
+  }
+
+  function calcK(n, D_m, L) {
+    // K = 10.29 * n^2 * L / D^(16/3)
+    return (10.29 * n * n * L) / Math.pow(D_m, 16/3);
+  }
+
+  function sigCom(hp) {
+    for(let c of COMERCIALES) { if(c >= hp) return c; }
+    return Math.ceil(hp / 5) * 5;
+  }
+
+  function fmt(v, dec=3) { return isNaN(v) ? '–' : v.toFixed(dec); }
+
+  function calcular() {
+    const Q_ls = parseFloat(document.getElementById('caudal').value) || 0;
+    const numEq = parseInt(document.getElementById('numEquipos').value) || 1;
+    const n = getN();
+    const D_pulg = parseFloat(document.getElementById('diametro').value) || 3;
+    const tipoBomba = document.getElementById('tipoBomba').value;
+    const eta = parseFloat(document.getElementById('eficiencia').value) / 100 || 0.5;
+    const cotaI = parseFloat(document.getElementById('cotaInicio').value) || 0;
+    const cotaF = parseFloat(document.getElementById('cotaFin').value) || 0;
+    const altEst = parseFloat(document.getElementById('alturaEst').value) || 0;
+    const L = parseFloat(document.getElementById('longitud').value) || 0;
+    const pctMen = parseFloat(document.getElementById('pctMenores').value) / 100 || 0.05;
+    const pctOtr = parseFloat(document.getElementById('pctOtras').value) / 100 || 0.06;
+    const gamma = parseFloat(document.getElementById('pe').value) || 1000;
+
+    // Caudal por equipo
+    const Q_eq = Q_ls / numEq; // l/s por equipo
+    const Q_m3s = Q_eq / 1000; // m³/s
+    const Q_m3min = Q_eq * 60 / 1000; // m³/min → l/min
+    const Q_lmin = Q_eq * 60; // l/min
+
+    // Diámetro
+    const D_m = pulgadasAMetros(D_pulg);
+
+    // Diámetro teórico
+    const D_teo = calcDiametroTeorico(Q_m3s, n, L, 0.005);
+
+    // Velocidad en tubería
+    const A = Math.PI * D_m * D_m / 4;
+    const vel = Q_m3s / A;
+
+    // K y Hf (Manning)
+    const K = calcK(n, D_m, L);
+    const Hf = K * Q_m3s * Q_m3s;
+
+    // Pérdidas menores
+    const Hmen = Hf * pctMen;
+
+    // Pérdidas totales por fricción
+    const Hfric = Hf + Hmen;
+
+    // Desnivel
+    const desnivel = (cotaF - cotaI) + altEst;
+
+    // Suma + otras pérdidas
+    const suma = desnivel + Hfric;
+    const otras = suma * pctOtr;
+
+    // Carga total
+    const H = suma + otras;
+
+    // Presión en Bar
+    const presion = (gamma * H) / (10.2 * 1000); // P = γH / (1000*10.2) → Bar
+
+    // Potencia en HP
+    // P[HP] = (γ[kg/m³] * Q[m³/s] * H[m]) / (75 * η)
+    const P_hp = (gamma * Q_m3s * H) / (75 * eta);
+
+    // Potencia comercial
+    const P_com = sigCom(P_hp);
+
+    // Mostrar resultados
+    document.getElementById('r_diam_calc').textContent = fmt(D_teo, 2);
+    document.getElementById('r_hf').textContent = fmt(Hfric, 3);
+    document.getElementById('r_carga').textContent = fmt(H, 2);
+    document.getElementById('r_pot').textContent = fmt(P_hp, 3);
+    document.getElementById('r_pot_com').textContent = P_com;
+    document.getElementById('r_presion').textContent = fmt(presion, 3);
+
+    // Tabla detalle
+    const rows = [
+      ['Caudal total',           fmt(Q_ls,3),          'l/s',   'Caudal a bombear total'],
+      ['Caudal por equipo',      fmt(Q_eq,3),           'l/s',   `Con ${numEq} equipo(s)`],
+      ['Caudal por equipo',      fmt(Q_lmin,1),         'l/min', 'Equivalente'],
+      ['Diámetro seleccionado',  fmt(D_pulg,1),         'pulg',  'Elegido por usuario'],
+      ['Diámetro en metros',     fmt(D_m,4),            'm',     'Conversión'],
+      ['Velocidad en tubería',   fmt(vel,4),            'm/s',   'Q/A'],
+      ['Coef. Manning n',        n.toString(),          '–',     `Material: ${document.getElementById('material').options[document.getElementById('material').selectedIndex].text}`],
+      ['Longitud tubería',       fmt(L,1),              'm',     'Longitud total'],
+      ['Constante K',            fmt(K,3),              '–',     'K = 10.29·n²·L/D^(16/3)'],
+      ['Pérdidas por fricción Hf',fmt(Hf,4),            'm',     'Hf = K·Q²'],
+      ['Pérdidas menores',       fmt(Hmen,4),           'm',     `${(pctMen*100).toFixed(0)}% de Hf`],
+      ['Total fricciones',       fmt(Hfric,4),          'm',     'Hf + Hmenores'],
+      ['Desnivel geométrico',    fmt(desnivel,2),       'm',     'Cota fin − Inicio + Estructura'],
+      ['Suma desnivel+fricción', fmt(suma,4),           'm',     'Subtotal'],
+      [`Otras pérdidas (${(pctOtr*100).toFixed(0)}%)`, fmt(otras,4), 'm', 'Sobre subtotal'],
+      ['CARGA TOTAL (H)',         fmt(H,3),             'm',     'Altura manométrica total'],
+      ['Presión',                fmt(presion,4),        'Bar',   'P = γ·H / (1000·10.2)'],
+      ['Eficiencia η',           `${(eta*100).toFixed(0)}`,  '%', ''],
+      ['Potencia calculada',     fmt(P_hp,4),           'HP',    'P = γ·Q·H / (75·η)'],
+      ['Potencia comercial',     P_com,                 'HP',    'Valor normalizado siguiente'],
+    ];
+    const tbody = document.getElementById('tabla_detalle');
+    tbody.innerHTML = rows.map(([p,v,u,d]) =>
+      `<tr><td>${p}</td><td style="color:var(--accent)">${v}</td><td style="color:var(--text-dim)">${u}</td><td>${d}</td></tr>`
+    ).join('');
+
+    // Recomendación
+    document.getElementById('rec_title').textContent =
+      `Bomba ${tipoBomba} · ${P_com} HP`;
+    document.getElementById('rec_desc').innerHTML =
+      `<strong>Carga total:</strong> ${fmt(H,2)} m &nbsp;|&nbsp; ` +
+      `<strong>Caudal:</strong> ${fmt(Q_ls,2)} l/s (${numEq} equipo${numEq>1?'s':''}) &nbsp;|&nbsp; ` +
+      `<strong>Diámetro:</strong> ${D_pulg}" &nbsp;|&nbsp; ` +
+      `<strong>Presión:</strong> ${fmt(presion,3)} Bar &nbsp;|&nbsp; ` +
+      `<strong>Eficiencia:</strong> ${(eta*100).toFixed(0)}%`;
+
+    const res = document.getElementById('results');
+    res.classList.remove('visible');
+    void res.offsetWidth;
+    res.classList.add('visible');
+    setTimeout(() => res.scrollIntoView({behavior:'smooth', block:'start'}), 100);
+  }
+
+  // Init
+  updateN();
+</script>
+</body>
+</html>
